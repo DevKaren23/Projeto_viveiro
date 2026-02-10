@@ -51,7 +51,7 @@ if menu == "🌱 Espécie":
 elif menu == "📦 Lote":
     st.header("📦 Novo Lote")
 
-    especies = requests.get(f"{API_URL}/especies/").json()
+    especies = requests.post(f"{API_URL}/especies/").json()
 
     with st.form("form_lote"):
         especie = st.selectbox(

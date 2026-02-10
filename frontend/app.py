@@ -1,4 +1,7 @@
 import streamlit as st
+
+st.write("APP INICIADO")
+
 st.set_page_config(
     page_title="Viveiro de Mudas",
     page_icon="🌱",

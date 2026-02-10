@@ -100,21 +100,47 @@ if menu_valor == "especie":
             st.warning("Preencha todos os campos")
 
 
-elif menu_valor == "lote":
+elif menu == "📦 Lote":
     st.header("📦 Novo Lote")
 
     cursor.execute("SELECT id, nome_popular FROM especies")
     especies = cursor.fetchall()
 
-    if especies:
+    if not especies:
+        st.warning("Cadastre uma espécie primeiro.")
+    else:
         especie_escolhida = st.selectbox(
             "Espécie",
             especies,
             format_func=lambda x: x[1]
         )
-        st.write("Espécie selecionada:", especie_escolhida[1])
-    else:
-        st.warning("Cadastre uma espécie primeiro.")
+
+        codigo_lote = st.text_input("Código do lote")
+        quantidade = st.number_input("Quantidade de mudas", min_value=1, step=1)
+        data_semeadura = st.date_input("Data da semeadura")
+        status = st.selectbox(
+            "Status do lote",
+            ["Em produção", "Pronto", "Descartado"]
+        )
+
+        if st.button("Salvar lote"):
+            if codigo_lote:
+                cursor.execute("""
+                    INSERT INTO lotes
+                    (especie_id, codigo_lote, quantidade, data_semeadura, status)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    especie_escolhida[0],
+                    codigo_lote,
+                    quantidade,
+                    data_semeadura.isoformat(),
+                    status
+                ))
+
+                conn.commit()
+                st.success("Lote cadastrado com sucesso!")
+            else:
+                st.warning("Informe o código do lote.")
 
 
 elif menu_valor == "qualidade":

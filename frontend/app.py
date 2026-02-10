@@ -1,6 +1,5 @@
 import streamlit as st
 
-st.write("APP INICIADO")
 
 st.set_page_config(
     page_title="Viveiro de Mudas",
@@ -73,7 +72,7 @@ menu = st.radio(
     horizontal=False
 )
 
-if menu == "Cadastrar Espécie":
+if menu == "Espécie":
     st.header("🌱 Nova Espécie")
 
     nome_popular = st.text_input("Nome popular")
@@ -91,7 +90,7 @@ if menu == "Cadastrar Espécie":
             st.warning("Preencha todos os campos")
 
 
-elif menu == "Cadastrar Lote":
+elif menu == "Lote":
     st.header("📦 Novo Lote")
 
     cursor.execute("SELECT id, nome_popular FROM especies")
@@ -108,7 +107,7 @@ elif menu == "Cadastrar Lote":
         st.warning("Cadastre uma espécie primeiro.")
 
 
-elif menu == "Avaliar Qualidade":
+elif menu == "Qualidade":
     st.header("🧪 Avaliação de Qualidade")
 
     # Buscar espécies

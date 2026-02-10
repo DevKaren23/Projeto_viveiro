@@ -1,4 +1,15 @@
 import streamlit as st
+st.set_page_config(
+    page_title="Viveiro de Mudas",
+    page_icon="🌱",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+API_URL = ""
+
+st.title("🌳 Viveiro de Mudas Florestais")
+
 import sqlite3
 
 conn = sqlite3.connect("viveiro.db", check_same_thread=False)
@@ -52,18 +63,6 @@ CREATE TABLE IF NOT EXISTS qualidade (
 
 conn.commit()
 
-
-
-st.set_page_config(
-    page_title="Viveiro de Mudas",
-    page_icon="🌱",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-API_URL = ""
-
-st.title("🌳 Viveiro de Mudas Florestais")
 
 menu = st.radio(
     "O que você quer fazer?",

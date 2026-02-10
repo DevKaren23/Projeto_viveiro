@@ -1,5 +1,58 @@
 import streamlit as st
-import requests
+import sqlite3
+
+conn = sqlite3.connect("viveiro.db", check_same_thread=False)
+cursor = conn.cursor()
+
+# -------------------------------
+# TABELA DE ESPÉCIES
+# -------------------------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS especies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome_popular TEXT NOT NULL,
+    nome_cientifico TEXT NOT NULL,
+    observacoes TEXT,
+    data_cadastro TEXT
+)
+""")
+
+# -------------------------------
+# TABELA DE LOTES
+# -------------------------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS lotes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    especie_id INTEGER NOT NULL,
+    codigo_lote TEXT NOT NULL,
+    quantidade INTEGER NOT NULL,
+    data_semeadura TEXT,
+    status TEXT,
+    FOREIGN KEY (especie_id) REFERENCES especies (id)
+)
+""")
+
+# -------------------------------
+# TABELA DE QUALIDADE
+# -------------------------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS qualidade (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lote_id INTEGER NOT NULL,
+    altura REAL,
+    diametro REAL,
+    sanidade TEXT,
+    vigor TEXT,
+    nota REAL,
+    classificacao TEXT,
+    data_avaliacao TEXT,
+    FOREIGN KEY (lote_id) REFERENCES lotes (id)
+)
+""")
+
+conn.commit()
+
+
 
 st.set_page_config(
     page_title="Viveiro de Mudas",
@@ -18,104 +71,99 @@ menu = st.radio(
     horizontal=False
 )
 
-if menu == "🌱 Espécie":
+if menu == "Cadastrar Espécie":
     st.header("🌱 Nova Espécie")
 
-    with st.form("form_especie"):
-        nome_popular = st.text_input("Nome popular")
-        nome_cientifico = st.text_input("Nome científico")
+    nome_popular = st.text_input("Nome popular")
+    nome_cientifico = st.text_input("Nome científico")
 
-        submitted = st.form_submit_button("💾 Salvar Espécie")
-
-    if submitted:
-        requests.post(
-            f"{API_URL}/especies/",
-            params={
-                "nome_popular": nome_popular,
-                "nome_cientifico": nome_cientifico
-            }
-        )
-        st.success("Espécie salva com sucesso!")
-
-    try:
-        especies = requests.get(f"{API_URL}/especies/").json()
-        if especies:
-            for e in especies:
-                st.write(f"🌱 {e['nome_popular']} — *{e['nome_cientifico']}*")
+    if st.button("Salvar espécie"):
+        if nome_popular and nome_cientifico:
+            cursor.execute(
+                "INSERT INTO especies (nome_popular, nome_cientifico) VALUES (?, ?)",
+                (nome_popular, nome_cientifico)
+            )
+            conn.commit()
+            st.success("Espécie cadastrada com sucesso!")
         else:
-            st.info("Nenhuma espécie cadastrada ainda.")
-    except:
-        st.error("Não foi possível carregar as espécies.")
+            st.warning("Preencha todos os campos")
 
 
-elif menu == "📦 Lote":
+elif menu == "Cadastrar Lote":
     st.header("📦 Novo Lote")
 
-    especies = requests.post(f"{API_URL}/especies/").json()
+    cursor.execute("SELECT id, nome_popular FROM especies")
+    especies = cursor.fetchall()
 
-    with st.form("form_lote"):
+    if especies:
+        especie_escolhida = st.selectbox(
+            "Espécie",
+            especies,
+            format_func=lambda x: x[1]
+        )
+        st.write("Espécie selecionada:", especie_escolhida[1])
+    else:
+        st.warning("Cadastre uma espécie primeiro.")
+
+
+elif menu == "Avaliar Qualidade":
+    st.header("🧪 Avaliação de Qualidade")
+
+    # Buscar espécies
+    cursor.execute("SELECT id, nome_popular FROM especies")
+    especies = cursor.fetchall()
+
+    if not especies:
+        st.warning("Cadastre uma espécie antes de avaliar.")
+    else:
         especie = st.selectbox(
             "Espécie",
             especies,
-            format_func=lambda x: x["nome_popular"]
+            format_func=lambda x: x[1]
         )
 
-        quantidade = st.number_input("Quantidade", min_value=1)
-        estagio = st.selectbox(
-            "Estágio",
-            ["Germinação", "Crescimento", "Rustificação", "Pronta"]
-        )
-        local = st.text_input("Local / Canteiro")
+        altura = st.number_input("Altura da muda (cm)", min_value=0.0)
+        diametro = st.number_input("Diâmetro do colo (mm)", min_value=0.0)
 
-        submitted = st.form_submit_button("💾 Salvar Lote")
+        sanidade = st.selectbox("Estado fitossanitário", ["Boa", "Regular", "Ruim"])
+        vigor = st.selectbox("Vigor", ["Alto", "Médio", "Baixo"])
 
-    if submitted:
-        requests.post(
-            f"{API_URL}/lotes/",
-            params={
-                "especie_id": especie["id"],
-                "quantidade": quantidade,
-                "estagio": estagio,
-                "local": local
-            }
-        )
-        st.success("Lote cadastrado!")
+        if st.button("Calcular e salvar avaliação"):
+            nota = 0
 
-elif menu == "🧪 Qualidade":
-    st.header("🧪 Avaliação de Qualidade")
+            if altura >= 30:
+                nota += 3
+            if diametro >= 3:
+                nota += 3
 
-    with st.form("form_qualidade"):
-        lote_id = st.number_input("ID do Lote", min_value=1)
-        altura = st.number_input("Altura média (cm)")
-        diametro = st.number_input("Diâmetro do coleto (mm)")
+            nota += {"Boa": 2, "Regular": 1, "Ruim": 0}[sanidade]
+            nota += {"Alto": 2, "Médio": 1, "Baixo": 0}[vigor]
 
-        sanidade = st.radio(
-            "Sanidade",
-            ["Boa", "Pragas", "Doenças"]
-        )
+            if nota >= 8:
+                classificacao = "A"
+            elif nota >= 6:
+                classificacao = "B"
+            elif nota >= 4:
+                classificacao = "C"
+            else:
+                classificacao = "Reprovada"
 
-        uniformidade = st.radio(
-            "Uniformidade",
-            ["Boa", "Média", "Ruim"]
-        )
+            cursor.execute("""
+                INSERT INTO qualidade 
+                (especie_id, altura, diametro, sanidade, vigor, nota, classificacao, data_avaliacao)
+                VALUES (?, ?, ?, ?, ?, ?, ?, date('now'))
+            """, (
+                especie[0],
+                altura,
+                diametro,
+                sanidade,
+                vigor,
+                nota,
+                classificacao
+            ))
 
-        nota = st.slider("Nota de qualidade", 0.0, 10.0)
-        obs = st.text_area("Observações")
+            conn.commit()
 
-        submitted = st.form_submit_button("✅ Registrar Avaliação")
+            st.success(f"Nota: {nota} | Classificação: {classificacao}")
 
-    if submitted:
-        requests.post(
-            f"{API_URL}/qualidade/",
-            params={
-                "lote_id": lote_id,
-                "altura_media": altura,
-                "diametro_coleto": diametro,
-                "sanidade": sanidade,
-                "uniformidade": uniformidade,
-                "nota_qualidade": nota,
-                "observacoes": obs
-            }
-        )
-        st.success("Avaliação registrada!")
 

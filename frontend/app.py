@@ -68,11 +68,21 @@ conn.commit()
 
 menu = st.radio(
     "O que você quer fazer?",
-    ["🌱 Espécie", "📦 Lote", "🧪 Qualidade"],
-    horizontal=False
+    {
+        "🌱 Espécie": "especie",
+        "📦 Lote": "lote",
+        "🧪 Qualidade": "qualidade"
+    }.keys()
 )
 
-if menu == "Espécie":
+menu_valor = {
+    "🌱 Espécie": "especie",
+    "📦 Lote": "lote",
+    "🧪 Qualidade": "qualidade"
+}[menu]
+
+
+if menu_valor == "especie":
     st.header("🌱 Nova Espécie")
 
     nome_popular = st.text_input("Nome popular")
@@ -90,7 +100,7 @@ if menu == "Espécie":
             st.warning("Preencha todos os campos")
 
 
-elif menu == "Lote":
+elif menu_valor == "lote":
     st.header("📦 Novo Lote")
 
     cursor.execute("SELECT id, nome_popular FROM especies")
@@ -107,7 +117,7 @@ elif menu == "Lote":
         st.warning("Cadastre uma espécie primeiro.")
 
 
-elif menu == "Qualidade":
+elif menu_valor == "qualidade":
     st.header("🧪 Avaliação de Qualidade")
 
     # Buscar espécies

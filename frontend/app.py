@@ -127,8 +127,9 @@ if menu_valor == "especie":
             st.warning("Preencha todos os campos")
 
 
-elif menu == "📦 Lote":
+elif menu_valor == "lote":
     st.header("📦 Novo Lote")
+
 
     cursor.execute("SELECT id, nome_popular FROM especies")
     especies = cursor.fetchall()
@@ -230,7 +231,7 @@ elif menu_valor == "qualidade":
 
             st.success(f"Nota: {nota} | Classificação: {classificacao}")
 
-elif menu == "estoque":
+elif menu_valor == "estoque":
     st.header("📊 Estoque")
 
     cursor.execute("""

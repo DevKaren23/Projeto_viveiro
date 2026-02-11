@@ -231,7 +231,7 @@ elif menu_valor == "qualidade":
             st.success(f"Nota: {nota} | Classificação: {classificacao}")
 
 elif menu == "estoque":
-    st.header("📊 Controle de Estoque")
+    st.header("📊 Estoque")
 
     cursor.execute("""
         SELECT 

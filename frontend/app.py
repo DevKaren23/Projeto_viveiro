@@ -104,7 +104,8 @@ menu = st.radio(
 menu_valor = {
     "🌱 Espécie": "especie",
     "📦 Lote": "lote",
-    "🧪 Qualidade": "qualidade"
+    "🧪 Qualidade": "qualidade",
+    "📊 Estoque": "estoque"
 }[menu]
 
 

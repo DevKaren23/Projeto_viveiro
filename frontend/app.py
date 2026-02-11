@@ -14,8 +14,14 @@ st.title("🌳 Viveiro de Mudas Florestais")
 
 import sqlite3
 
-conn = sqlite3.connect("viveiro.db", check_same_thread=False)
+@st.cache_resource
+def get_connection():
+    conn = sqlite3.connect("viveiro.db", check_same_thread=False)
+    return conn
+
+conn = get_connection()
 cursor = conn.cursor()
+
 
 # -------------------------------
 # TABELA DE ESPÉCIES
@@ -63,7 +69,25 @@ CREATE TABLE IF NOT EXISTS qualidade (
 )
 """)
 
+# -------------------------------
+# TABELA DE MOVIMENTAÇÕES
+# -------------------------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS movimentacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lote_id INTEGER NOT NULL,
+    tipo TEXT NOT NULL, -- Entrada ou Saída
+    quantidade INTEGER NOT NULL,
+    motivo TEXT,
+    data_movimentacao TEXT,
+    FOREIGN KEY (lote_id) REFERENCES lotes (id)
+)
+""")
+
 conn.commit()
+
+
+
 
 
 menu = st.radio(
@@ -71,7 +95,9 @@ menu = st.radio(
     {
         "🌱 Espécie": "especie",
         "📦 Lote": "lote",
-        "🧪 Qualidade": "qualidade"
+        "🧪 Qualidade": "qualidade",
+        "📊 Estoque": "estoque"
+
     }.keys()
 )
 
@@ -187,7 +213,7 @@ elif menu_valor == "qualidade":
 
             cursor.execute("""
                 INSERT INTO qualidade 
-                (especie_id, altura, diametro, sanidade, vigor, nota, classificacao, data_avaliacao)
+                (lote_id, altura, diametro, sanidade, vigor, nota, classificacao, data_avaliacao)
                 VALUES (?, ?, ?, ?, ?, ?, ?, date('now'))
             """, (
                 especie[0],
@@ -202,5 +228,71 @@ elif menu_valor == "qualidade":
             conn.commit()
 
             st.success(f"Nota: {nota} | Classificação: {classificacao}")
+
+elif menu == "estoque":
+    st.header("📊 Controle de Estoque")
+
+    cursor.execute("""
+        SELECT 
+            lotes.id,
+            lotes.codigo_lote,
+            especies.nome_popular,
+            lotes.quantidade
+        FROM lotes
+        JOIN especies ON especies.id = lotes.especie_id
+    """)
+    lotes = cursor.fetchall()
+
+    if not lotes:
+        st.warning("Nenhum lote cadastrado.")
+    else:
+        lote = st.selectbox(
+            "Selecione o lote",
+            lotes,
+            format_func=lambda x: f"{x[1]} - {x[2]} (Estoque: {x[3]})"
+        )
+
+        st.markdown(f"**Estoque atual:** {lote[3]} mudas")
+
+        st.subheader("🚚 Registrar saída")
+
+        qtd_saida = st.number_input(
+            "Quantidade de saída",
+            min_value=1,
+            max_value=lote[3],
+            step=1
+        )
+
+        motivo = st.selectbox(
+            "Motivo da saída",
+            ["Plantio", "Venda", "Doação", "Descarte"]
+        )
+
+        if st.button("Registrar saída"):
+            if qtd_saida <= lote[3]:
+                novo_estoque = lote[3] - qtd_saida
+
+                # Atualiza estoque
+                cursor.execute(
+                    "UPDATE lotes SET quantidade = ? WHERE id = ?",
+                    (novo_estoque, lote[0])
+                )
+
+                # Registra movimentação
+                cursor.execute("""
+                    INSERT INTO movimentacoes
+                    (lote_id, tipo, quantidade, motivo, data_movimentacao)
+                    VALUES (?, 'Saída', ?, ?, date('now'))
+                """, (
+                    lote[0],
+                    qtd_saida,
+                    motivo
+                ))
+
+                conn.commit()
+                st.success("Saída registrada com sucesso!")
+            else:
+                st.error("Quantidade maior que o estoque disponível.")
+            
 
 
